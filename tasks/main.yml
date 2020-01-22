@@ -1,0 +1,37 @@
+- name: Install the AWS CLI
+  apt:
+    name: awscli
+    state: latest
+
+- name: Add a mongodb backup user
+  mongodb_user:
+    login_user: superuser
+    login_password: '{{ mongodb_superuser_password }}'
+    database: admin
+    name: '{{ mongodb_backup_user }}'
+    password: '{{ mongodb_backup_user_password }}'
+    roles: backup
+
+- name: Inject the mongo backup script
+  template:
+    dest: '/home/{{ backup_user_host }}/backup.sh'
+    src: backup_script.j2
+    mode: 0700
+    owner: '{{ backup_user_host }}'
+    group: '{{ backup_user_host }}'
+  vars:
+    backup_user_host: '{{ backup_user_host }}'
+    source_database: '{{ source_database }}'
+    s3_access_key: '{{ s3_access_key }}'
+    s3_secret_key: '{{ s3_secret_key }}'
+    s3_bucket_name: '{{ s3_bucket_name }}'
+    s3_endpoint: '{{ s3_endpoint }}'
+    mongodb_backup_user: '{{ mongodb_backup_user }}'
+    mongodb_backup_password: '{{ mongodb_backup_password }}'
+
+- name: Add a crontab entry for the mongodb backup script
+  cron:
+    name: 'backup mongodb'
+    minute: '10'
+    user: '{{ backup_user_host }}'
+    job: '/home/{{ backup_user_host }}/backup.sh >  /home/{{ backup_user_host }}/backup.log'

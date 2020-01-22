@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# https://gist.github.com/eladnava/96bd9771cd2e01fb4427230563991c8d
+# Make sure to:
+# 1) Name this file `backup.sh` and place it in /home/ubuntu
+# 2) Run sudo apt-get install awscli to install the AWSCLI
+# 3) Run aws configure (enter s3-authorized IAM user and specify region)
+# 4) Fill in DB host + name
+# 5) Create S3 bucket for the backups and fill it in below (set a lifecycle rule to expire files older than X days in the bucket)
+# 6) Run chmod +x backup.sh
+# 7) Test it out via ./backup.sh
+# 8) Set up a daily backup at midnight via `crontab -e`:
+#    0 0 * * * /home/ubuntu/backup.sh > /home/ubuntu/backup.log
+
+# DB host (secondary preferred as to avoid impacting primary performance)
+HOST=localhost
+
+# Linux user account
+USER={{ backup_user_host }}
+
+# Current time
+TIME=`/bin/date +%Y-%m-%d-%T`
+
+# Backup target
+FILENAME={{ source_database }}_dump_$TIME.archive
+DEST=/home/$USER/backups/$FILENAME
+
+# Create backup dir (-p to avoid warning if already exists)
+/bin/mkdir -p $DEST
+
+echo "Backing up $HOST/{{ source_database }} to s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME on $TIME";
+
+# Dump from mongodb host into backup directory
+/usr/bin/mongodump -h $HOST -d $DBNAME --gzip --archive=$DEST --password {{ mongodb_backup_password }} --username {{ mongodb_backup_user }} --authenticationDatabase admin
+
+# Upload tar to s3
+AWS_ACCESS_KEY_ID={{ s3_access_key }} AWS_SECRET_ACCESS_KEY={{ s3_secret_key }} /usr/bin/aws s3 cp $DEST/archive.gz s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME
+
+# Remove backup directory
+/bin/rm -rf $DEST
+
+echo "Backup available at https://s3.amazonaws.com/$BUCKET/$FILENAME"
