@@ -1,6 +1,6 @@
 - name: Install the AWS CLI
   apt:
-    name: awscli
+    name: s3cmd
     state: latest
 
 # - name: Add a mongodb backup user
