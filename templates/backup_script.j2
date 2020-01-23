@@ -31,7 +31,7 @@ DEST=/home/$USER/backups/$FILENAME
 echo "Backing up $HOST/{{ source_database }} to s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME on $TIME";
 
 # Dump from mongodb host into backup directory
-/usr/bin/mongodump -h $HOST -d $DBNAME --gzip --archive=$DEST --password {{ mongodb_backup_password }} --username {{ mongodb_backup_user }} --authenticationDatabase admin
+/usr/bin/mongodump -h $HOST -d {{ source_database }} --gzip --archive=$DEST --password "{{ mongodb_backup_password }}" --username {{ mongodb_backup_user }} --authenticationDatabase admin
 
 # Upload tar to s3
 AWS_ACCESS_KEY_ID={{ s3_access_key }} AWS_SECRET_ACCESS_KEY={{ s3_secret_key }} /usr/bin/aws s3 cp $DEST/archive.gz s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME
