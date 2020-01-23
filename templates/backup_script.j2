@@ -19,21 +19,22 @@ USER={{ backup_user_host }}
 TIME=`/bin/date +%Y-%m-%d-%T`
 
 # Backup target
-FILENAME={{ source_database }}_dump_$TIME.archive
-DEST=/home/$USER/backups/$FILENAME
+FILENAME=${TIME}_{{ source_database }}_dump.gz
+DEST=/home/$USER/backups
 
 # Create backup dir (-p to avoid warning if already exists)
 /bin/mkdir -p $DEST
 
-echo "Backing up $HOST/{{ source_database }} to s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME on $TIME";
+BACKUP_TARGET=s3://{{ s3_bucket_name }}.{{ s3_endpoint }}/$FILENAME
+echo "Backing up $HOST/{{ source_database }} to $BACKUP_TARGET";
 
 # Dump from mongodb host into backup directory
-/usr/bin/mongodump -h localhost -d {{ source_database }} --gzip --archive=$DEST --password "{{ mongodb_backup_password }}" --username {{ mongodb_backup_user }} --authenticationDatabase admin
+/usr/bin/mongodump -h localhost -d {{ source_database }} --gzip --archive=$DEST/$FILENAME --password "{{ mongodb_backup_password }}" --username {{ mongodb_backup_username }} --authenticationDatabase admin
 
-# Upload tar to s3
-s3cmd --host={{ s3_endpoint }} --access_key="{{ s3_access_key }}" --secret_key="{{ s3_secret_key }}" put $DEST/archive.gz s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME
+# Upload encrypted archive to s3
+s3cmd put $DEST/$FILENAME s3://{{ s3_bucket_name }}/$FILENAME
 
 # Remove backup directory
-/bin/rm -rf $DEST
+/bin/rm -rf $DEST/$FILENAME
 
-echo "Backup available at s3://{{ s3_endpoint }}/{{ s3_bucket_name }}/$FILENAME"
+echo "Backup available at $BACKUP_TARGET"

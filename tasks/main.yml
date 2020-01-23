@@ -20,6 +20,14 @@
     owner: "{{ backup_user_host }}"
     group: "{{ backup_user_host }}"
 
+- name: Inject the s3 configuration
+  template:
+    dest: "/home/{{ backup_user_host }}/.s3cfg"
+    src: s3cfg.j2
+    mode: 0700
+    owner: "{{ backup_user_host }}"
+    group: "{{ backup_user_host }}"
+
 - name: Add a crontab entry for the mongodb backup script
   cron:
     name: "backup mongodb"
